@@ -16,7 +16,7 @@ model User {
   email           String   @unique
   password        String
   age             Int
-  birthdate       DateTime?
+  birthdate       DateTime @db.Date
   profile_picture String
   is_verified     Boolean
   createdAt       DateTime @default(now())
