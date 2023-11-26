@@ -5,17 +5,7 @@ const prisma = new PrismaClient();
 var jwt = require("jsonwebtoken");
 const { ResponseTemplate } = require("../helper/template_helper");
 const nodemailer = require("nodemailer");
-// const crypto = require("crypto");
-
-// function generateUniqueToken() {
-//   const currentTimestamp = Date.now().toString();
-//   const randomBytes = crypto.randomBytes(16).toString("hex");
-//   const uniqueToken = crypto
-//     .createHash("sha1")
-//     .update(currentTimestamp + randomBytes)
-//     .digest("hex");
-//   return uniqueToken;
-// }
+const { formatISO } = require("date-fns"); // Gunakan library date-fns untuk konversi tanggal
 
 async function register(req, res, next) {
   try {
@@ -30,8 +20,11 @@ async function register(req, res, next) {
       },
     });
 
-    let { name, email, password, age, profile_picture } = req.body;
-    // const formattedDate = new Date(birthdate).toISOString().split("T")[0];
+    let { name, email, password, age, birthdate, profile_picture } = req.body;
+    const formattedDate = formatISO(new Date(birthdate), {
+      representation: "date",
+    });
+
     let existUser = await prisma.user.findUnique({
       where: {
         email,
@@ -49,7 +42,7 @@ async function register(req, res, next) {
         email: email,
         password: encriptedPassword,
         age: parseInt(age),
-        // birthdate: formattedDate,
+        birthdate: formattedDate,
         profile_picture: profile_picture,
         is_verified: false,
       },
