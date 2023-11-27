@@ -5,7 +5,9 @@ const prisma = new PrismaClient();
 var jwt = require("jsonwebtoken");
 const { ResponseTemplate } = require("../helper/template_helper");
 const nodemailer = require("nodemailer");
-const { formatISO } = require("date-fns"); // Gunakan library date-fns untuk konversi tanggal
+// const { format } = require("date-fns"); // Gunakan library date-fns untuk konversi tanggal
+const parseISO = require("date-fns/parseISO");
+const format = require("date-fns/format");
 
 async function register(req, res, next) {
   try {
@@ -21,9 +23,11 @@ async function register(req, res, next) {
     });
 
     let { name, email, password, age, birthdate, profile_picture } = req.body;
-    const formattedDate = formatISO(new Date(birthdate), {
-      representation: "date",
-    });
+    const formattedDate = new Date(parseISO(birthdate));
+    formattedDate.setDate(formattedDate.getDate() + 1);
+    const newformattedDate = formattedDate.toISOString();
+
+    // console.log(parseISO(birthdate));
 
     let existUser = await prisma.user.findUnique({
       where: {
@@ -42,7 +46,7 @@ async function register(req, res, next) {
         email: email,
         password: encriptedPassword,
         age: parseInt(age),
-        birthdate: formattedDate,
+        birthdate: newformattedDate,
         profile_picture: profile_picture,
         is_verified: false,
       },
@@ -54,12 +58,14 @@ async function register(req, res, next) {
       // { expiresIn: "1h" } // Opsional: Waktu kedaluwarsa token
     );
 
+    const verificationLink = `http://localhost:8080/auth/verify?token=${token}`;
+
     const mailOptions = await transporter.sendMail({
       from: process.env.EMAIL_SMTP, // sender address
       to: email, // list of receivers
       subject: "Hello ✔", // Subject line
       text: "Hello world?", // plain text body
-      html: `token anda: ${token}`, // html body
+      html: `<a href="${verificationLink}">Verify your email</a>`, // html body
     });
     console.log("Email sent: " + mailOptions.response);
     let resp = ResponseTemplate(user, "create successfully", null, 200);
@@ -82,6 +88,15 @@ async function authUser(req, res) {
       let resp = ResponseTemplate(
         null,
         "Incorrect email or password",
+        null,
+        401
+      );
+      res.json(resp);
+      return;
+    } else if (!user.is_verified) {
+      let resp = ResponseTemplate(
+        null,
+        "Please verify your email first",
         null,
         401
       );
