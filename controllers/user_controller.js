@@ -1,5 +1,6 @@
 const imagekit = require("../lib/imagekit");
-
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
 
 async function updateProfilPicture(req,res){
   try {
@@ -7,6 +8,15 @@ async function updateProfilPicture(req,res){
     const uploadFile = await imagekit.upload({
       fileName: req.file.originalname,
       file: stringFile,
+    });
+
+    const user = await prisma.user.update({
+      where: {
+        id: req.user.id,
+      },
+      data: {
+        profile_picture: uploadFile.url,
+      },
     });
     return res.json({
       status: 200,
